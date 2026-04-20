@@ -2,7 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
 import { z } from "zod";
 import axios from "axios";
@@ -29,27 +29,13 @@ server.tool(
   {
     keyword: z
       .string()
-      .min(1)
       .describe(
         "The product or medicine name to search for (e.g. 'Napa', 'Paracetamol')"
       ),
-    page: z
-      .number()
-      .int()
-      .positive()
-      .optional()
-      .default(1)
-      .describe("Page number for pagination (default: 1)"),
-    pageSize: z
-      .number()
-      .int()
-      .positive()
-      .max(50)
-      .optional()
-      .default(10)
-      .describe("Number of results per page (default: 10, max: 50)"),
   },
-  async ({ keyword, page = 1, pageSize = 10 }) => {
+  async ({ keyword }) => {
+    const page = 1;
+    const pageSize = 10;
     try {
       const response = await axios.get<SearchApiResponse>(
         `${API_BASE_URL}${SEARCH_ENDPOINT}`,
@@ -131,41 +117,25 @@ async function main() {
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
 
   if (port) {
-    // --- SSE (HTTP) Transport ---
+    // --- Streamable HTTP Transport ---
     const app = express();
-    const transports = new Map<string, SSEServerTransport>();
 
-    app.get("/sse", async (req, res) => {
-      console.log("New SSE connection established");
+    app.all("/mcp", async (req, res) => {
       const server = new McpServer({
         name: "mr-dokan-product-search",
         version: "1.0.0",
       });
       registerTools(server);
 
-      const transport = new SSEServerTransport("/message", res);
+      const transport = new StreamableHTTPServerTransport();
       await server.connect(transport);
-      transports.set(transport.sessionId, transport);
 
-      res.on("close", () => {
-        transports.delete(transport.sessionId);
-      });
-    });
-
-    app.post("/message", async (req, res) => {
-      console.log("Received POST message on SSE transport");
-      const sessionId = req.query.sessionId as string;
-      const transport = transports.get(sessionId);
-      if (transport) {
-        await transport.handlePostMessage(req, res);
-      } else {
-        res.status(503).send("No active SSE connection");
-      }
+      await transport.handleRequest(req, res);
     });
 
     app.listen(port, () => {
-      console.log(`✅ Mr Dokan MCP Server running on HTTP/SSE port ${port}`);
-      console.log(`📡 SSE Endpoint: http://localhost:${port}/sse`);
+      console.log(`✅ Mr Dokan MCP Server running on Streamable HTTP port ${port}`);
+      console.log(`📡 MCP Endpoint: http://localhost:${port}/mcp`);
     });
   } else {
     // --- Stdio Transport ---
