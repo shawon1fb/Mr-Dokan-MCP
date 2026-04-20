@@ -1,0 +1,23 @@
+{
+  "name": "mr-dokan-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Mr Dokan online pharmacy product search",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc --watch",
+    "test": "vitest run tests/helpers.test.ts",
+    "test:integration": "vitest run tests/integration.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "axios": "^1.7.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.4"
+  }
+}
