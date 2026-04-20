@@ -1,6 +1,6 @@
 {
   "name": "mr-dokan-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP Server for Mr Dokan online pharmacy product search",
   "main": "build/index.js",
   "type": "module",
@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.2",
-    "axios": "^1.7.9"
+    "axios": "^1.7.9",
+    "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.10.5",
     "typescript": "^5.7.3",
     "vitest": "^4.1.4"

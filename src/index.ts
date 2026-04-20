@@ -2,6 +2,8 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import express from "express";
 import { z } from "zod";
 import axios from "axios";
 import {
@@ -128,9 +130,38 @@ server.tool(
 // --- Start ---
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("✅ Mr Dokan MCP Server running on stdio");
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
+
+  if (port) {
+    // --- SSE (HTTP) Transport ---
+    const app = express();
+    let transport: SSEServerTransport;
+
+    app.get("/sse", async (req, res) => {
+      console.log("New SSE connection established");
+      transport = new SSEServerTransport("/message", res);
+      await server.connect(transport);
+    });
+
+    app.post("/message", async (req, res) => {
+      console.log("Received POST message on SSE transport");
+      if (transport) {
+        await transport.handlePostMessage(req, res);
+      } else {
+        res.status(503).send("No active SSE connection");
+      }
+    });
+
+    app.listen(port, () => {
+      console.log(`✅ Mr Dokan MCP Server running on HTTP/SSE port ${port}`);
+      console.log(`📡 SSE Endpoint: http://localhost:${port}/sse`);
+    });
+  } else {
+    // --- Stdio Transport ---
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("✅ Mr Dokan MCP Server running on stdio");
+  }
 }
 
 main().catch((err) => {
